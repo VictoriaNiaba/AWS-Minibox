@@ -1,11 +1,17 @@
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
-import { HomePageComponent } from './home-page/home-page.component';
-import { AuthGuard } from './auth.guard';
+import { AuthGuard } from './core/guards/auth.guard';
 
 const routes = [
-  { path: 'accueil', component: HomePageComponent, canActivate: [AuthGuard] },
+  {
+    path: '',
+    loadChildren: () =>
+      import('./file-explorer/file-explorer.module').then(
+        (m) => m.FileExplorerModule
+      ),
+    canActivate: [AuthGuard],
+  },
   { path: '**', redirectTo: 'accueil' },
 ];
 

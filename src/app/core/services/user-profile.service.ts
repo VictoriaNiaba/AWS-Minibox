@@ -1,10 +1,13 @@
 import { Injectable } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
 import { environment } from 'src/environments/environment';
 import { filter, map, switchMap, tap } from 'rxjs/operators';
 import { HttpClient } from '@angular/common/http';
 import { VerifierService } from './verifier.service';
 import { BehaviorSubject, from, Observable, of } from 'rxjs';
+import {
+  CognitoIdentityClient,
+  GetIdCommand,
+} from '@aws-sdk/client-cognito-identity';
 
 @Injectable({
   providedIn: 'root',
@@ -16,6 +19,7 @@ export class UserProfileService {
 
   private tokensSubject = new BehaviorSubject<any>(null);
   private userInfoSubject = new BehaviorSubject<any>(null);
+  private identityIdSubject = new BehaviorSubject<any>(null);
 
   getUserInfo() {
     return this.userInfoSubject.value;
@@ -29,15 +33,47 @@ export class UserProfileService {
   getTokens$() {
     return this.tokensSubject.asObservable();
   }
+  getIdentityId() {
+    return this.identityIdSubject.value;
+  }
+  getIdentityId$() {
+    return this.identityIdSubject.asObservable();
+  }
 
   constructor(
     private http: HttpClient,
     private verifierService: VerifierService
   ) {
+    // Fetch User IdentityId
+    this.tokensSubject
+      .pipe(
+        filter((tokens) => tokens?.id_token),
+        switchMap((tokens) => {
+          const client = new CognitoIdentityClient({
+            region: environment.region,
+          });
+
+          return from(
+            client.send(
+              new GetIdCommand({
+                // AccountId: environment.appClientId,
+                IdentityPoolId: environment.identityPoolId,
+                Logins: {
+                  [`cognito-idp.${environment.region}.amazonaws.com/${environment.userPoolId}`]: tokens.id_token,
+                },
+              })
+            )
+          );
+        }),
+        map((response) => response.IdentityId)
+      )
+      .subscribe((identityId) => this.identityIdSubject.next(identityId));
+
     // Fetch from /user_info
     this.tokensSubject
       .pipe(
         filter((tokens) => tokens != null),
+        tap((tokens) => console.log('tokens :' + JSON.stringify(tokens))),
         switchMap((tokens) =>
           this.http.post<any>(
             `${this.baseURL}/userInfo`,
@@ -65,7 +101,6 @@ export class UserProfileService {
   }
 
   private requestTokens(code: string, state: string): Observable<void> {
-    console.log('request tokens');
     if (sessionStorage.getItem('pkce_state') != state) {
       alert('Invalid state');
     } else {
@@ -98,7 +133,6 @@ export class UserProfileService {
         // Create code challenge
         const code_challenge = this.hashToBase64url(arrayHash);
         sessionStorage.setItem('code_challenge', code_challenge);
-        console.log('redirecting to authorize endpoint');
         this.redirectToAuthorizeEndpoint(state, code_challenge);
       })
     );
@@ -119,7 +153,6 @@ export class UserProfileService {
   }
 
   private fetchOAuth2TokensFromCognito(code: string) {
-    console.log('fetch OAUTH 2..');
     const code_verifier = sessionStorage.getItem('code_verifier');
     return this.http.post<any>(
       `${this.baseURL}/token`,

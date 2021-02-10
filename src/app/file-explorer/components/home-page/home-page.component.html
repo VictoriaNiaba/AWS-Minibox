@@ -1,0 +1,90 @@
+<div class="container mt-4">
+  <div class="row">
+    <div class="col-12">
+      <h2>Dossier {{ currentFolder || "/" }}</h2>
+    </div>
+    <div class="col-6">
+      <mat-card class="mb-2 d-flex">
+        <input
+          style="flex-grow: 1"
+          type="file"
+          id="fileInput"
+          name="fileInput"
+        />
+        <button
+          class="mr-2 mb-2"
+          mat-flat-button
+          color="primary"
+          (click)="uploadFile()"
+        >
+          Uploader un fichier
+        </button>
+      </mat-card>
+    </div>
+    <div class="col-6">
+      <mat-card class="mb-2 d-flex">
+        <form
+          class="example-form w-100 d-flex"
+          [formGroup]="folderForm"
+          (ngSubmit)="createFolder()"
+        >
+          <div style="flex-grow: 1" class="mr-4">
+            <mat-form-field class="example-full-width w-100">
+              <mat-label>Nom du dossier</mat-label>
+              <input matInput formControlName="name" />
+            </mat-form-field>
+          </div>
+          <div>
+            <button
+              class="mr-2 mb-2"
+              mat-flat-button
+              color="primary"
+              type="submit"
+            >
+              Créer un dossier
+            </button>
+          </div>
+        </form>
+      </mat-card>
+    </div>
+
+    <div class="col-12">
+      <table mat-table [dataSource]="dataSource" class="mat-elevation-z0">
+        <!-- Name Column -->
+        <ng-container matColumnDef="name">
+          <th mat-header-cell *matHeaderCellDef>Nom</th>
+          <td mat-cell *matCellDef="let element">
+            <span *ngIf="element.Key && element.Key !== '..'">{{
+              element.Key
+            }}</span>
+            <a
+              style="margin-left: -1rem"
+              color="primary"
+              mat-button
+              *ngIf="!element.Key && element.Prefix && element.Key !== '..'"
+              (click)="navigateToFolderPage(currentFolder + element.Prefix)"
+              >{{ element.Prefix }}</a
+            >
+            <a
+              style="margin-left: -1rem"
+              color="primary"
+              mat-button
+              *ngIf="element.Key === '..'"
+              (click)="navigateToFolderPage(getParentPath(currentFolder))"
+              >{{ element.Key }}</a
+            >
+          </td>
+        </ng-container>
+
+        <!-- CreatedAt Column -->
+        <ng-container matColumnDef="createdAt">
+          <th mat-header-cell *matHeaderCellDef>Dernière modification</th>
+          <td mat-cell *matCellDef="let element">{{ element.LastModified }}</td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+      </table>
+    </div>
+  </div>
+</div>

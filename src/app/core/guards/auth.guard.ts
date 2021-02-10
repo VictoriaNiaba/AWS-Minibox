@@ -6,8 +6,8 @@ import {
   UrlTree,
 } from '@angular/router';
 import { Observable } from 'rxjs';
-import { map, tap } from 'rxjs/operators';
-import { UserProfileService } from './user-profile.service';
+import { map } from 'rxjs/operators';
+import { UserProfileService } from '../services/user-profile.service';
 
 @Injectable({
   providedIn: 'root',
@@ -31,10 +31,8 @@ export class AuthGuard implements CanActivate {
             this.userProfileService.getUserInfo() ||
             this.userProfileService.getTokens()
           ) {
-            console.log('auth guard ok');
             return true;
           }
-          console.log('auth guard not ok');
           return false;
         })
       );
